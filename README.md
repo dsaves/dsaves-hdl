@@ -21,17 +21,20 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
 
-# SUMMARY
-This library contains simple hardware designs in VHDL and SystemVerilog.
-It will be expanded to include common synchronizers, design-for-test (DFT), and encryption hardware.
+# Summary
+This library contains hardware designs in VHDL and SystemVerilog.  It will be expanded to include common synchronizers, design-for-test (DFT), and encryption hardware.
+More to come soon.
+
 
 # VHDL
  - The VHDL files assume you are compiling entities to a library named "dsaves".
- This was done to avoid naming collisions.
+ This was done to avoid naming collisions. Because libraries in VHDL are a virtual construct, you may have to work with other software you are using (eg. Modelsim, QuestaSim, Xilinx ISE, etc) to create the library "dsaves" and compile the design units to that library.  Alternatively, you can change the "dsaves" library to "work".
 
-More to come soon.
-
+ 
+# Contributions
 If you would like to contribute hardware designs to this project, clone the
 repo, make your edits, and send me a pull request.
 
+
+# Contact
 Danny: dronin227@gmail.com
