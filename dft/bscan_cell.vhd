@@ -20,52 +20,50 @@
 --OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 --SOFTWARE.
 
-library ieee;
+library ieee, dsaves;
 use ieee.std_logic_1164.all;
 
-entity LATCH is
+entity bscan_cell is
     port(
-        clk : in std_logic;
-        i : in std_logic;
-        o : out std_logic
+        data_in : in std_logic;
+        scan_in : in std_logic;
+        shift_DR : in std_logic;
+        capture_DR : in std_logic;
+        update_DR : in std_logic;
+        mode : in std_logic;
+        trst : in std_logic;
+        data_out : out std_logic
     );
 end entity;
 
-architecture HI_EN of LATCH is
-    signal o2 : std_logic;
+architecture POS_EDGE of BSCAN_CELL is
+    signal capture_reg_in : std_logic;
+    signal capture_reg_out : std_logic;
+    signal update_latch_out : std_logic;
 begin
-    --assign output
-    o <= o2;
 
-    --LATCH logic
-    process(clk, i)
-    begin
-        if(clk='1') then
-            o2 <= i;
-        else
-            o2 <= o2;
-        end if;
-    end process;
-
-end architecture;
-
-
-architecture LO_EN of LATCH is
-    signal o2 : std_logic;
-begin
-    --assign output
-    o <= o2;
-
-    --LATCH logic
-    process(clk, i)
-    begin
-        if(clk='0') then
-            o2 <= i;
-        else
-            o2 <= o2;
-        end if;
-    end process;
-
+    capture_reg_in <= data_in when shift_DR = '0' else
+                        scan_in;
+                        
+    capture_reg_INST : entity dsaves.FF(POS_EDGE_HI_EN)
+        port map(
+            clk => capture_DR,
+            d => capture_reg_in,
+            en => '1',
+            rst => trst,
+            q => capture_reg_out
+        );
+        
+    update_latch_INST : entity dsaves.LATCH(HI_EN)
+        port map(
+            clk => update_DR,
+            i => capture_reg_out,
+            o => update_latch_out
+        );
+                        
+    data_out <= data_in when mode = '0' else
+                update_latch_out;
+                
 end architecture;
 
 
