@@ -239,12 +239,16 @@ begin
                     end if;
                 when DONE =>
                     NEXT_STATE <= DONE; --stay in done state unless reset
+					
             end case;
             --end case;
         end if;
     end process;
     
-    
+    --FINISHED signal asserts when hashing is done
+	finished <= '1' when CURRENT_STATE = DONE else
+				'0';
+				
 	data_out <= H0 & H1 & H2 & H3 & H4 & H5 & H6 & H7;
 end architecture;
 
