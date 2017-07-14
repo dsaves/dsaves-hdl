@@ -20,6 +20,7 @@
 --OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 --SOFTWARE.
 
+
 -- ############################################################################
 --  The official specifications of the SHA-256 algorithm can be found here:
 --      http://nvlpubs.nist.gov/nistpubs/FIPS/NIST.FIPS.180-4.pdf
@@ -31,21 +32,22 @@ use ieee.numeric_std.all;
 use work.sha_256_pkg.all;
 
 entity sha_256_core is
-	generic(
-		RESET_VALUE : std_logic := '0';	--reset enable value
-		MSG_L : NATURAL;	--message length in bits
-		DATA_WIDTH : NATURAL	:= 32;	--message IN length in bits
-		WORD_WIDTH : NATURAL	:= 32	--sha256 uses 32-bit words
-	);
-	port(
-		clk : in std_logic;
-		rst : in std_logic;
+    generic(
+        RESET_VALUE : std_logic := '0';    --reset enable value
+        IDLE_VALUE : std_logic := '0';    --idle enable value
+        DATA_WIDTH : NATURAL    := 32;    --message IN length in bits
+        WORD_WIDTH : NATURAL    := 32    --sha256 uses 32-bit words
+    );
+    port(
+        clk : in std_logic;
+        rst : in std_logic;
+        idle : in std_logic;
         n_blocks : in natural; --N, the number of (padded) message blocks
-		data_in : in std_logic_vector(DATA_WIDTH-1 downto 0);
-		--mode_in : in std_logic;
-		finished : out std_logic;
-		data_out : out std_logic_vector(DATA_WIDTH-1 downto 0)
-	);
+        msg_block_in : in std_logic_vector((16 * DATA_WIDTH)-1 downto 0);
+        --mode_in : in std_logic;
+        finished : out std_logic;
+        data_out : out std_logic_vector(DATA_WIDTH-1 downto 0)
+    );
 end entity;
 
 architecture sha_256_core_ARCH of sha_256_core is
@@ -58,25 +60,25 @@ architecture sha_256_core_ARCH of sha_256_core is
     signal T1 : std_logic_vector(WORD_WIDTH-1 downto 0);
     signal T2 : std_logic_vector(WORD_WIDTH-1 downto 0);
 
-	--Working variables, 8 32-bit words
-	signal a : std_logic_vector(WORD_WIDTH-1 downto 0);
-	signal b : std_logic_vector(WORD_WIDTH-1 downto 0);
-	signal c : std_logic_vector(WORD_WIDTH-1 downto 0);
-	signal d : std_logic_vector(WORD_WIDTH-1 downto 0);
-	signal e : std_logic_vector(WORD_WIDTH-1 downto 0);
-	signal f : std_logic_vector(WORD_WIDTH-1 downto 0);
-	signal g : std_logic_vector(WORD_WIDTH-1 downto 0);
-	signal h : std_logic_vector(WORD_WIDTH-1 downto 0);
+    --Working variables, 8 32-bit words
+    signal a : std_logic_vector(WORD_WIDTH-1 downto 0);
+    signal b : std_logic_vector(WORD_WIDTH-1 downto 0);
+    signal c : std_logic_vector(WORD_WIDTH-1 downto 0);
+    signal d : std_logic_vector(WORD_WIDTH-1 downto 0);
+    signal e : std_logic_vector(WORD_WIDTH-1 downto 0);
+    signal f : std_logic_vector(WORD_WIDTH-1 downto 0);
+    signal g : std_logic_vector(WORD_WIDTH-1 downto 0);
+    signal h : std_logic_vector(WORD_WIDTH-1 downto 0);
     
     --Hash values w/ initial hash values; 8 32-bit words
-	signal H0 : std_logic_vector(WORD_WIDTH-1 downto 0) := X"6a09e667";
-	signal H1 : std_logic_vector(WORD_WIDTH-1 downto 0) := X"bb67ae85";
-	signal H2 : std_logic_vector(WORD_WIDTH-1 downto 0) := X"3c6ef372";
-	signal H3 : std_logic_vector(WORD_WIDTH-1 downto 0) := X"a54ff53a";
-	signal H4 : std_logic_vector(WORD_WIDTH-1 downto 0) := X"510e527f";
-	signal H5 : std_logic_vector(WORD_WIDTH-1 downto 0) := X"9b05688c";
-	signal H6 : std_logic_vector(WORD_WIDTH-1 downto 0) := X"1f83d9ab";
-	signal H7 : std_logic_vector(WORD_WIDTH-1 downto 0) := X"5be0cd19";
+    signal H0 : std_logic_vector(WORD_WIDTH-1 downto 0) := X"6a09e667";
+    signal H1 : std_logic_vector(WORD_WIDTH-1 downto 0) := X"bb67ae85";
+    signal H2 : std_logic_vector(WORD_WIDTH-1 downto 0) := X"3c6ef372";
+    signal H3 : std_logic_vector(WORD_WIDTH-1 downto 0) := X"a54ff53a";
+    signal H4 : std_logic_vector(WORD_WIDTH-1 downto 0) := X"510e527f";
+    signal H5 : std_logic_vector(WORD_WIDTH-1 downto 0) := X"9b05688c";
+    signal H6 : std_logic_vector(WORD_WIDTH-1 downto 0) := X"1f83d9ab";
+    signal H7 : std_logic_vector(WORD_WIDTH-1 downto 0) := X"5be0cd19";
     
     
     --Message blocks, the padded message should be a multiple of 512 bits,
@@ -97,31 +99,72 @@ architecture sha_256_core_ARCH of sha_256_core is
     signal M14 : std_logic_vector(WORD_WIDTH-1 downto 0);
     signal M15 : std_logic_vector(WORD_WIDTH-1 downto 0);
     
-	type SHA_256_HASH_CORE_STATE is ( RESET, HASH_00, HASH_01, HASH_02, HASH_03, DONE );
+    type SHA_256_HASH_CORE_STATE is ( RESET, IDLE_STATE, READ_MSG_BLOCK, HASH_00, HASH_01, HASH_02, HASH_03, DONE );
     signal CURRENT_STATE, NEXT_STATE : SHA_256_HASH_CORE_STATE;
+    signal PREVIOUS_STATE : SHA_256_HASH_CORE_STATE;
 begin
 
 
     --current state logic
-    process(clk, rst)
+    process(clk, rst, idle)
     begin
         if(rst=RESET_VALUE) then
             CURRENT_STATE <= RESET;
+        elsif(idle=IDLE_VALUE) then
+            CURRENT_STATE <= IDLE_STATE;
         elsif(clk'event and clk='1') then
+            if(PREVIOUS_STATE /= CURRENT_STATE) then
+                if(CURRENT_STATE /= NEXT_STATE) then
+                    PREVIOUS_STATE <= CURRENT_STATE;
+                end if;
+            end if;
             CURRENT_STATE <= NEXT_STATE;
         end if;
     end process;
     
     --next state logic, and hash logic
-    process(clk, rst)
+    process(clk, rst, idle)
     begin
         if(rst=RESET_VALUE) then
             HASH_ROUND_COUNTER <= 0;
             MSG_BLOCK_COUNTER <= 0;
             NEXT_STATE <= RESET;
+        elsif(idle=IDLE_VALUE) then
+            NEXT_STATE <= IDLE_STATE;
         elsif(clk'event and clk='1') then
             case CURRENT_STATE is
                 when RESET =>
+                    H0 <= X"6a09e667";
+                    H1 <= X"bb67ae85";
+                    H2 <= X"3c6ef372";
+                    H3 <= X"a54ff53a";
+                    H4 <= X"510e527f";
+                    H5 <= X"9b05688c";
+                    H6 <= X"1f83d9ab";
+                    H7 <= X"5be0cd19";
+                    
+                    NEXT_STATE <= READ_MSG_BLOCK;
+                when IDLE_STATE =>    --the IDLE_STATE stage is a stall stage, perhaps waiting for new message block to arrive.
+                    NEXT_STATE <= PREVIOUS_STATE;
+                when READ_MSG_BLOCK =>
+                    M00 <= msg_block_in(WORD_WIDTH-1 downto 0);
+                    M01 <= msg_block_in((WORD_WIDTH * 2)-1 downto WORD_WIDTH * 1);
+                    M02 <= msg_block_in((WORD_WIDTH * 3)-1 downto WORD_WIDTH * 2);
+                    M03 <= msg_block_in((WORD_WIDTH * 4)-1 downto WORD_WIDTH * 3);
+                    M04 <= msg_block_in((WORD_WIDTH * 5)-1 downto WORD_WIDTH * 4);
+                    M05 <= msg_block_in((WORD_WIDTH * 6)-1 downto WORD_WIDTH * 5);
+                    M06 <= msg_block_in((WORD_WIDTH * 7)-1 downto WORD_WIDTH * 6);
+                    M07 <= msg_block_in((WORD_WIDTH * 8)-1 downto WORD_WIDTH * 7);
+                    M08 <= msg_block_in((WORD_WIDTH * 9)-1 downto WORD_WIDTH * 8);
+                    M09 <= msg_block_in((WORD_WIDTH * 10)-1 downto WORD_WIDTH * 9);
+                    M10 <= msg_block_in((WORD_WIDTH * 11)-1 downto WORD_WIDTH * 10);
+                    M11 <= msg_block_in((WORD_WIDTH * 12)-1 downto WORD_WIDTH * 11);
+                    M12 <= msg_block_in((WORD_WIDTH * 13)-1 downto WORD_WIDTH * 12);
+                    M13 <= msg_block_in((WORD_WIDTH * 14)-1 downto WORD_WIDTH * 13);
+                    M14 <= msg_block_in((WORD_WIDTH * 15)-1 downto WORD_WIDTH * 14);
+                    M15 <= msg_block_in((WORD_WIDTH * 16)-1 downto WORD_WIDTH * 15);
+                    
+                    NEXT_STATE <= HASH_00;
                 when HASH_00 =>
                     W(0) <= M00;
                     W(1) <= M01;
@@ -193,7 +236,7 @@ begin
                     W(62) <= std_logic_vector(unsigned(SIGMA_LCASE_1(W(60))) + unsigned(W(55)) + unsigned(SIGMA_LCASE_0(W(47))) + unsigned(W(46)));
                     W(63) <= std_logic_vector(unsigned(SIGMA_LCASE_1(W(61))) + unsigned(W(56)) + unsigned(SIGMA_LCASE_0(W(48))) + unsigned(W(47)));
                     
-                    --W(16) <= SIGMA_LCASE_1(W(14)) + W(09) + SIGMA_LCASE_0(W(01)) + W(00);
+                    NEXT_STATE <= HASH_01;
                 when HASH_01 =>
                     a <= H0;
                     b <= H1;
@@ -219,7 +262,7 @@ begin
                         c <= b;
                         b <= a;
                         a <= std_logic_vector(unsigned(T1) + unsigned(T2));
-                        HASH_02_COUNTER <= HASH_02_COUNTER + 1;
+                        HASH_02_COUNTER <= HASH_02_COUNTER + 1;    --increment counter
                     end if;
                 when HASH_03 =>
                     H0 <= std_logic_vector(unsigned(a) + unsigned(H0));
@@ -234,22 +277,20 @@ begin
                         HASH_ROUND_COUNTER <= 0;
                         NEXT_STATE <= DONE;
                     else
-                        HASH_ROUND_COUNTER <= HASH_ROUND_COUNTER + 1;
-                        NEXT_STATE <= HASH_00;
+                        HASH_ROUND_COUNTER <= HASH_ROUND_COUNTER + 1;    --increment counter, read in next message block
+                        NEXT_STATE <= READ_MSG_BLOCK;
                     end if;
                 when DONE =>
                     NEXT_STATE <= DONE; --stay in done state unless reset
-					
             end case;
-            --end case;
         end if;
     end process;
     
     --FINISHED signal asserts when hashing is done
-	finished <= '1' when CURRENT_STATE = DONE else
-				'0';
-				
-	data_out <= H0 & H1 & H2 & H3 & H4 & H5 & H6 & H7;
+    finished <= '1' when CURRENT_STATE = DONE else
+                '0';
+                
+    data_out <= H0 & H1 & H2 & H3 & H4 & H5 & H6 & H7;
 end architecture;
 
 
