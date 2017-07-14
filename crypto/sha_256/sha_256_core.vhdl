@@ -26,6 +26,11 @@
 --      http://nvlpubs.nist.gov/nistpubs/FIPS/NIST.FIPS.180-4.pdf
 
 
+-- ##################################################################
+--     This SHA_256_CORE module reads in PADDED message blocks (from
+--      an external source) and hashes the resulting message
+-- ##################################################################
+
 library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
@@ -35,7 +40,6 @@ entity sha_256_core is
     generic(
         RESET_VALUE : std_logic := '0';    --reset enable value
         IDLE_VALUE : std_logic := '0';    --idle enable value
-        DATA_WIDTH : NATURAL    := 32;    --message IN length in bits
         WORD_WIDTH : NATURAL    := 32    --sha256 uses 32-bit words
     );
     port(
@@ -43,10 +47,10 @@ entity sha_256_core is
         rst : in std_logic;
         idle : in std_logic;
         n_blocks : in natural; --N, the number of (padded) message blocks
-        msg_block_in : in std_logic_vector((16 * DATA_WIDTH)-1 downto 0);
+        msg_block_in : in std_logic_vector((16 * WORD_WIDTH)-1 downto 0);
         --mode_in : in std_logic;
         finished : out std_logic;
-        data_out : out std_logic_vector(DATA_WIDTH-1 downto 0)
+        data_out : out std_logic_vector((WORD_WIDTH * 8)-1 downto 0) --SHA-256 results in a 256-bit hash value
     );
 end entity;
 
