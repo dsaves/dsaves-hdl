@@ -33,7 +33,7 @@ entity block_reader is
 	generic(
         CLK_VALUE : std_logic := '1';    --clock enable value
         RESET_VALUE : std_logic := '0';    --reset enable value
-        EN_VALUE : std_logic := '0';    --enable value
+        EN_VALUE : std_logic := '1';    --enable value
         BLOCK_SIZE : natural := 32;   --size of blocks, 
         NUM_BLOCKS : natural := 16
 	);
@@ -78,6 +78,7 @@ begin
         if(rst'event and rst = RESET_VALUE) then
             NEXT_STATE <= RESET;
             BLOCK_COUNTER <= 0;
+            data <= (others => '0');
         elsif(clk'event and clk = CLK_VALUE) then
             case CURRENT_STATE is
                 when RESET =>
@@ -88,7 +89,9 @@ begin
                     else
                         BLOCK_COUNTER <= BLOCK_COUNTER + 1;
                         --capture logic
-                        data <= std_logic_vector(shift_left(unsigned(data_in), BLOCK_COUNTER*BLOCK_SIZE));
+                        data(BLOCK_SIZE-1 downto 0) <= data_in;
+                        data((BLOCK_SIZE*NUM_BLOCKS)-1 downto BLOCK_SIZE) <= data(BLOCK_SIZE*(NUM_BLOCKS-1)-1 downto 0);
+                        --data <= std_logic_vector(shift_left(unsigned(data), BLOCK_COUNTER*BLOCK_SIZE)) ;
                         NEXT_STATE <= READ_IN;
                     end if;
                 when DONE =>
