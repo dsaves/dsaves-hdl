@@ -18,6 +18,8 @@ add wave -position insertpoint  \
 sim:/block_reader/BLOCK_COUNTER
 add wave -position insertpoint  \
 sim:/block_reader/NUM_BLOCKS
+add wave -position insertpoint  \
+sim:/block_reader/valid
 force -freeze sim:/block_reader/clk 1 0, 0 {50 ns} -r 100
 force -freeze sim:/block_reader/rst 1
 run 50

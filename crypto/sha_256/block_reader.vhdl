@@ -73,7 +73,6 @@ begin
     --next state logic
     process(clk, rst, en)
     begin
-        valid <= '0';
         data <= data;
         if(rst'event and rst = RESET_VALUE) then
             NEXT_STATE <= RESET;
@@ -84,24 +83,23 @@ begin
                 when RESET =>
                     NEXT_STATE <= READ_IN;
                 when READ_IN =>
-                    if(BLOCK_COUNTER = NUM_BLOCKS) then
+                    if(BLOCK_COUNTER >= NUM_BLOCKS) then
                         NEXT_STATE <= DONE;
                     else
-                        BLOCK_COUNTER <= BLOCK_COUNTER + 1;
                         --capture logic
+                        BLOCK_COUNTER <= BLOCK_COUNTER + 1;
                         data(BLOCK_SIZE-1 downto 0) <= data_in;
                         data((BLOCK_SIZE*NUM_BLOCKS)-1 downto BLOCK_SIZE) <= data(BLOCK_SIZE*(NUM_BLOCKS-1)-1 downto 0);
-                        --data <= std_logic_vector(shift_left(unsigned(data), BLOCK_COUNTER*BLOCK_SIZE)) ;
                         NEXT_STATE <= READ_IN;
                     end if;
                 when DONE =>
-                    valid <= '1';
                     NEXT_STATE <= DONE;
             end case;
         end if;
     end process;
     
     data_out <= data;
+    valid <= '1' when CURRENT_STATE = DONE else '0';
     
 end architecture;
 
