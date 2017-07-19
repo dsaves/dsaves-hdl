@@ -20,6 +20,7 @@
 --OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 --SOFTWARE.
 
+
 -- ############################################################################
 --  The official specifications of the SHA-256 algorithm can be found here:
 --      http://nvlpubs.nist.gov/nistpubs/FIPS/NIST.FIPS.180-4.pdf
@@ -34,7 +35,7 @@ package sha_256_pkg is
     
     type K_DATA is array (0 to 63) of std_logic_vector(WORD_SIZE-1 downto 0);
     constant K : K_DATA := (
-		--address 0
+        --address 0
         X"428a2f98", X"71374491", X"b5c0fbcf", X"e9b5dba5",
         X"3956c25b", X"59f111f1", X"923f82a4", X"ab1c5ed5",
         X"d807aa98", X"12835b01", X"243185be", X"550c7dc3",
@@ -51,7 +52,7 @@ package sha_256_pkg is
         X"391c0cb3", X"4ed8aa4a", X"5b9cca4f", X"682e6ff3",
         X"748f82ee", X"78a5636f", X"84c87814", X"8cc70208",
         X"90befffa", X"a4506ceb", X"bef9a3f7", X"c67178f2"
-	);
+    );
     
     --Message schedule, W(00), W(01), ...W(63) (64 32-bit words)
     signal W : K_DATA;
@@ -81,7 +82,7 @@ package sha_256_pkg is
                     return std_logic_vector;
 end package;
 
-package body dsaves_sha_256 is
+package body sha_256_pkg is
     function ROTR (a : std_logic_vector(WORD_SIZE-1 downto 0); n : natural)
                     return std_logic_vector is
         --result : std_logic_vector(WORD_SIZE-1 downto 0);
