@@ -61,28 +61,28 @@ architecture sha_256_core_ARCH of sha_256_core is
     constant HASH_02_COUNT_LIMIT : natural := 64;
     
     --Temporary words
-    signal T1 : std_logic_vector(WORD_WIDTH-1 downto 0);
-    signal T2 : std_logic_vector(WORD_WIDTH-1 downto 0);
+    signal T1 : std_logic_vector(WORD_WIDTH-1 downto 0) := (others => '0');
+    signal T2 : std_logic_vector(WORD_WIDTH-1 downto 0) := (others => '0');
 
     --Working variables, 8 32-bit words
-    signal a : std_logic_vector(WORD_WIDTH-1 downto 0);
-    signal b : std_logic_vector(WORD_WIDTH-1 downto 0);
-    signal c : std_logic_vector(WORD_WIDTH-1 downto 0);
-    signal d : std_logic_vector(WORD_WIDTH-1 downto 0);
-    signal e : std_logic_vector(WORD_WIDTH-1 downto 0);
-    signal f : std_logic_vector(WORD_WIDTH-1 downto 0);
-    signal g : std_logic_vector(WORD_WIDTH-1 downto 0);
-    signal h : std_logic_vector(WORD_WIDTH-1 downto 0);
+    signal a : std_logic_vector(WORD_WIDTH-1 downto 0) := (others => '0');
+    signal b : std_logic_vector(WORD_WIDTH-1 downto 0) := (others => '0');
+    signal c : std_logic_vector(WORD_WIDTH-1 downto 0) := (others => '0');
+    signal d : std_logic_vector(WORD_WIDTH-1 downto 0) := (others => '0');
+    signal e : std_logic_vector(WORD_WIDTH-1 downto 0) := (others => '0');
+    signal f : std_logic_vector(WORD_WIDTH-1 downto 0) := (others => '0');
+    signal g : std_logic_vector(WORD_WIDTH-1 downto 0) := (others => '0');
+    signal h : std_logic_vector(WORD_WIDTH-1 downto 0) := (others => '0');
     
     --Hash values w/ initial hash values; 8 32-bit words
-    signal H0 : std_logic_vector(WORD_WIDTH-1 downto 0) := X"6a09e667";
-    signal H1 : std_logic_vector(WORD_WIDTH-1 downto 0) := X"bb67ae85";
-    signal H2 : std_logic_vector(WORD_WIDTH-1 downto 0) := X"3c6ef372";
-    signal H3 : std_logic_vector(WORD_WIDTH-1 downto 0) := X"a54ff53a";
-    signal H4 : std_logic_vector(WORD_WIDTH-1 downto 0) := X"510e527f";
-    signal H5 : std_logic_vector(WORD_WIDTH-1 downto 0) := X"9b05688c";
-    signal H6 : std_logic_vector(WORD_WIDTH-1 downto 0) := X"1f83d9ab";
-    signal H7 : std_logic_vector(WORD_WIDTH-1 downto 0) := X"5be0cd19";
+    signal H0 : std_logic_vector(WORD_WIDTH-1 downto 0);
+    signal H1 : std_logic_vector(WORD_WIDTH-1 downto 0);
+    signal H2 : std_logic_vector(WORD_WIDTH-1 downto 0);
+    signal H3 : std_logic_vector(WORD_WIDTH-1 downto 0);
+    signal H4 : std_logic_vector(WORD_WIDTH-1 downto 0);
+    signal H5 : std_logic_vector(WORD_WIDTH-1 downto 0);
+    signal H6 : std_logic_vector(WORD_WIDTH-1 downto 0);
+    signal H7 : std_logic_vector(WORD_WIDTH-1 downto 0);
     
     
     --Message blocks, the padded message should be a multiple of 512 bits,
@@ -102,6 +102,13 @@ architecture sha_256_core_ARCH of sha_256_core is
     signal M13 : std_logic_vector(WORD_WIDTH-1 downto 0);
     signal M14 : std_logic_vector(WORD_WIDTH-1 downto 0);
     signal M15 : std_logic_vector(WORD_WIDTH-1 downto 0);
+    
+    
+    --TODO: get rid of this
+    
+    signal debug_word : std_logic_vector(WORD_WIDTH-1 downto 0);
+    signal debug_word_01 : std_logic_vector(WORD_WIDTH-1 downto 0);
+    
     
     type SHA_256_HASH_CORE_STATE is ( RESET, IDLE_STATE, READ_MSG_BLOCK, HASH_00, HASH_01, HASH_02, HASH_03, DONE );
     signal CURRENT_STATE, NEXT_STATE : SHA_256_HASH_CORE_STATE;
@@ -136,6 +143,45 @@ begin
         elsif(idle=IDLE_VALUE) then
             NEXT_STATE <= IDLE_STATE;
         elsif(clk'event and clk='1') then
+            debug_word <= debug_word;
+            debug_word_01 <= debug_word_01;
+            W <= W;
+            a <= a;
+            b <= b;
+            c <= c;
+            d <= d;
+            e <= e;
+            f <= f;
+            g <= g;
+            h <= h;
+            T1 <= T1;
+            T2 <= T2;
+            M00 <= M00;
+            M01 <= M01;
+            M02 <= M02;
+            M03 <= M03;
+            M04 <= M04;
+            M05 <= M05;
+            M06 <= M06;
+            M07 <= M07;
+            M08 <= M08;
+            M09 <= M09;
+            M10 <= M10;
+            M11 <= M11;
+            M12 <= M12;
+            M13 <= M13;
+            M14 <= M14;
+            M15 <= M15;
+            H0 <= H0;
+            H1 <= H1;
+            H2 <= H2;
+            H3 <= H3;
+            H4 <= H4;
+            H5 <= H5;
+            H6 <= H6;
+            H7 <= H7;
+            HASH_02_COUNTER <= HASH_02_COUNTER;
+            HASH_ROUND_COUNTER <= HASH_ROUND_COUNTER;
             case CURRENT_STATE is
                 when RESET =>
                     H0 <= X"6a09e667";
@@ -146,11 +192,22 @@ begin
                     H5 <= X"9b05688c";
                     H6 <= X"1f83d9ab";
                     H7 <= X"5be0cd19";
+                    HASH_02_COUNTER <= 0;
+                    HASH_ROUND_COUNTER <= 0;
                     
                     NEXT_STATE <= READ_MSG_BLOCK;
                 when IDLE_STATE =>    --the IDLE_STATE stage is a stall stage, perhaps waiting for new message block to arrive.
                     NEXT_STATE <= PREVIOUS_STATE;
                 when READ_MSG_BLOCK =>
+                
+                    H0 <= X"6a09e667";
+                    H1 <= X"bb67ae85";
+                    H2 <= X"3c6ef372";
+                    H3 <= X"a54ff53a";
+                    H4 <= X"510e527f";
+                    H5 <= X"9b05688c";
+                    H6 <= X"1f83d9ab";
+                    H7 <= X"5be0cd19";
                     M00 <= msg_block_in(WORD_WIDTH-1 downto 0);
                     M01 <= msg_block_in((WORD_WIDTH * 2)-1 downto WORD_WIDTH * 1);
                     M02 <= msg_block_in((WORD_WIDTH * 3)-1 downto WORD_WIDTH * 2);
@@ -186,17 +243,17 @@ begin
                     W(13) <= M13;
                     W(14) <= M14;
                     W(15) <= M15;
-                    W(16) <= std_logic_vector(unsigned(SIGMA_LCASE_1(W(14))) + unsigned(W(09)) + unsigned(SIGMA_LCASE_0(W(01))) + unsigned(W(00)));
-                    W(17) <= std_logic_vector(unsigned(SIGMA_LCASE_1(W(15))) + unsigned(W(10)) + unsigned(SIGMA_LCASE_0(W(02))) + unsigned(W(01)));
-                    W(18) <= std_logic_vector(unsigned(SIGMA_LCASE_1(W(16))) + unsigned(W(11)) + unsigned(SIGMA_LCASE_0(W(03))) + unsigned(W(02)));
-                    W(19) <= std_logic_vector(unsigned(SIGMA_LCASE_1(W(17))) + unsigned(W(12)) + unsigned(SIGMA_LCASE_0(W(04))) + unsigned(W(03)));
+                    W(16) <= std_logic_vector(unsigned(SIGMA_LCASE_1(W(14))) + unsigned(W(9)) + unsigned(SIGMA_LCASE_0(W(1))) + unsigned(W(0)));
+                    W(17) <= std_logic_vector(unsigned(SIGMA_LCASE_1(W(15))) + unsigned(W(10)) + unsigned(SIGMA_LCASE_0(W(2))) + unsigned(W(1)));
+                    W(18) <= std_logic_vector(unsigned(SIGMA_LCASE_1(W(16))) + unsigned(W(11)) + unsigned(SIGMA_LCASE_0(W(3))) + unsigned(W(2)));
+                    W(19) <= std_logic_vector(unsigned(SIGMA_LCASE_1(W(17))) + unsigned(W(12)) + unsigned(SIGMA_LCASE_0(W(4))) + unsigned(W(3)));
                     
-                    W(20) <= std_logic_vector(unsigned(SIGMA_LCASE_1(W(18))) + unsigned(W(13)) + unsigned(SIGMA_LCASE_0(W(05))) + unsigned(W(04)));
-                    W(21) <= std_logic_vector(unsigned(SIGMA_LCASE_1(W(19))) + unsigned(W(14)) + unsigned(SIGMA_LCASE_0(W(06))) + unsigned(W(05)));
-                    W(22) <= std_logic_vector(unsigned(SIGMA_LCASE_1(W(20))) + unsigned(W(15)) + unsigned(SIGMA_LCASE_0(W(07))) + unsigned(W(06)));
-                    W(23) <= std_logic_vector(unsigned(SIGMA_LCASE_1(W(21))) + unsigned(W(16)) + unsigned(SIGMA_LCASE_0(W(08))) + unsigned(W(07)));
-                    W(24) <= std_logic_vector(unsigned(SIGMA_LCASE_1(W(22))) + unsigned(W(17)) + unsigned(SIGMA_LCASE_0(W(09))) + unsigned(W(08)));
-                    W(25) <= std_logic_vector(unsigned(SIGMA_LCASE_1(W(23))) + unsigned(W(18)) + unsigned(SIGMA_LCASE_0(W(10))) + unsigned(W(09)));
+                    W(20) <= std_logic_vector(unsigned(SIGMA_LCASE_1(W(18))) + unsigned(W(13)) + unsigned(SIGMA_LCASE_0(W(5))) + unsigned(W(4)));
+                    W(21) <= std_logic_vector(unsigned(SIGMA_LCASE_1(W(19))) + unsigned(W(14)) + unsigned(SIGMA_LCASE_0(W(6))) + unsigned(W(5)));
+                    W(22) <= std_logic_vector(unsigned(SIGMA_LCASE_1(W(20))) + unsigned(W(15)) + unsigned(SIGMA_LCASE_0(W(7))) + unsigned(W(6)));
+                    W(23) <= std_logic_vector(unsigned(SIGMA_LCASE_1(W(21))) + unsigned(W(16)) + unsigned(SIGMA_LCASE_0(W(8))) + unsigned(W(7)));
+                    W(24) <= std_logic_vector(unsigned(SIGMA_LCASE_1(W(22))) + unsigned(W(17)) + unsigned(SIGMA_LCASE_0(W(9))) + unsigned(W(8)));
+                    W(25) <= std_logic_vector(unsigned(SIGMA_LCASE_1(W(23))) + unsigned(W(18)) + unsigned(SIGMA_LCASE_0(W(10))) + unsigned(W(9)));
                     W(26) <= std_logic_vector(unsigned(SIGMA_LCASE_1(W(24))) + unsigned(W(19)) + unsigned(SIGMA_LCASE_0(W(11))) + unsigned(W(10)));
                     W(27) <= std_logic_vector(unsigned(SIGMA_LCASE_1(W(25))) + unsigned(W(20)) + unsigned(SIGMA_LCASE_0(W(12))) + unsigned(W(11)));
                     W(28) <= std_logic_vector(unsigned(SIGMA_LCASE_1(W(26))) + unsigned(W(21)) + unsigned(SIGMA_LCASE_0(W(13))) + unsigned(W(12)));
@@ -252,10 +309,12 @@ begin
                     h <= H7;
                     NEXT_STATE <= HASH_02;
                 when HASH_02 =>
-                    if(HASH_02_COUNTER = HASH_02_COUNT_LIMIT) then
+                    if(HASH_02_COUNTER = HASH_02_COUNT_LIMIT-1) then
                         HASH_02_COUNTER <= 0;
                         NEXT_STATE <= HASH_03;
                     else
+                        debug_word <= K(HASH_02_COUNTER);
+                        debug_word_01 <= W(HASH_02_COUNTER);
                         T1 <= std_logic_vector(unsigned(h) + unsigned(SIGMA_UCASE_1(e)) + unsigned(CH(e, f, g)) + unsigned(K(HASH_02_COUNTER)) + unsigned(W(HASH_02_COUNTER)));
                         T2 <= std_logic_vector(unsigned(SIGMA_UCASE_0(a)) + unsigned(MAJ(a, b, c)));
                         h <= g;
@@ -277,7 +336,7 @@ begin
                     H5 <= std_logic_vector(unsigned(f) + unsigned(H5));
                     H6 <= std_logic_vector(unsigned(g) + unsigned(H6));
                     H7 <= std_logic_vector(unsigned(h) + unsigned(H7));
-                    if(HASH_ROUND_COUNTER = n_blocks) then
+                    if(HASH_ROUND_COUNTER = n_blocks-1) then
                         HASH_ROUND_COUNTER <= 0;
                         NEXT_STATE <= DONE;
                     else
