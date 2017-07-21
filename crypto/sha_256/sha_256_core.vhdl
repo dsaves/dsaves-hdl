@@ -88,7 +88,7 @@ architecture sha_256_core_ARCH of sha_256_core is
     signal debug_word_01 : std_logic_vector(WORD_WIDTH-1 downto 0);
     
     
-    type SHA_256_HASH_CORE_STATE is ( RESET, IDLE_STATE, READ_MSG_BLOCK, HASH_00, HASH_01, HASH_02, HASH_03, DONE );
+    type SHA_256_HASH_CORE_STATE is ( RESET, IDLE_STATE, READ_MSG_BLOCK, HASH_00, HASH_01, HASH_02, HASH_02b, HASH_03, DONE );
     signal CURRENT_STATE, NEXT_STATE : SHA_256_HASH_CORE_STATE;
     signal PREVIOUS_STATE : SHA_256_HASH_CORE_STATE;
 begin
@@ -110,15 +110,51 @@ begin
         end if;
     end process;
     
-    --next state logic, and hash logic
+    --next state logic
+    process(CURRENT_STATE, HASH_ROUND_COUNTER, HASH_02_COUNTER, rst, idle)
+    begin
+        if(rst=RESET_VALUE) then
+            NEXT_STATE <= RESET;
+        elsif(idle=IDLE_VALUE) then
+            NEXT_STATE <= IDLE_STATE;
+        else
+            case CURRENT_STATE is
+                when RESET =>
+                    NEXT_STATE <= READ_MSG_BLOCK;
+                when IDLE_STATE =>
+                    NEXT_STATE <= PREVIOUS_STATE;
+                when READ_MSG_BLOCK =>
+                    NEXT_STATE <= HASH_00;
+                when HASH_00 =>
+                    NEXT_STATE <= HASH_01;
+                when HASH_01 =>
+                    NEXT_STATE <= HASH_02;
+                when HASH_02 =>
+                    if(HASH_02_COUNTER = HASH_02_COUNT_LIMIT-1) then
+                        NEXT_STATE <= HASH_03;
+                    else
+                        NEXT_STATE <= HASH_02b;
+                    end if;
+                when HASH_02b =>
+                        NEXT_STATE <= HASH_02;
+                when HASH_03 =>
+                    if(HASH_ROUND_COUNTER = n_blocks-1) then
+                        NEXT_STATE <= DONE;
+                    else
+                        NEXT_STATE <= READ_MSG_BLOCK;
+                    end if;
+                when DONE =>
+                    NEXT_STATE <= DONE; --stay in done state unless reset
+            end case;
+        end if;
+    end process;
+    
+    --hash logic
     process(clk, rst, idle, CURRENT_STATE)
     begin
         if(rst=RESET_VALUE) then
             HASH_ROUND_COUNTER <= 0;
             MSG_BLOCK_COUNTER <= 0;
-            NEXT_STATE <= RESET;
-        elsif(idle=IDLE_VALUE) then
-            NEXT_STATE <= IDLE_STATE;
         elsif(clk'event and clk='1') then
             debug_word <= debug_word;
             debug_word_01 <= debug_word_01;
@@ -149,10 +185,7 @@ begin
                     HV(7) <= X"5be0cd19";
                     HASH_02_COUNTER <= 0;
                     HASH_ROUND_COUNTER <= 0;
-                    
-                    NEXT_STATE <= READ_MSG_BLOCK;
                 when IDLE_STATE =>    --the IDLE_STATE stage is a stall stage, perhaps waiting for new message block to arrive.
-                    NEXT_STATE <= PREVIOUS_STATE;
                 when READ_MSG_BLOCK =>
                 
                     HV(0) <= X"6a09e667";
@@ -165,10 +198,8 @@ begin
                     HV(7) <= X"5be0cd19";
                     M <= M_INT;
                     
-                    NEXT_STATE <= HASH_00;
                 when HASH_00 =>
                     W <= W_INT;
-                    NEXT_STATE <= HASH_01;
                 when HASH_01 =>
                     a <= HV(0);
                     b <= HV(1);
@@ -178,12 +209,16 @@ begin
                     f <= HV(5);
                     g <= HV(6);
                     h <= HV(7);
-                    NEXT_STATE <= HASH_02;
                 when HASH_02 =>
                     if(HASH_02_COUNTER = HASH_02_COUNT_LIMIT-1) then
                         HASH_02_COUNTER <= 0;
-                        NEXT_STATE <= HASH_03;
                     else
+                        --you have to set T1 and T2 in a different state, due to how
+                        --VHDL sequential/process statements are evaluated.
+                        --T1 <= std_logic_vector(unsigned(h) + unsigned(SIGMA_UCASE_1(e)) + unsigned(CH(e, f, g)) + unsigned(K(HASH_02_COUNTER)) + unsigned(W(HASH_02_COUNTER)));
+                        --T2 <= std_logic_vector(unsigned(SIGMA_UCASE_0(a)) + unsigned(MAJ(a, b, c)));
+                    end if;
+                when HASH_02b =>
                         debug_word <= K(HASH_02_COUNTER);
                         debug_word_01 <= W(HASH_02_COUNTER);
                         T1 <= std_logic_vector(unsigned(h) + unsigned(SIGMA_UCASE_1(e)) + unsigned(CH(e, f, g)) + unsigned(K(HASH_02_COUNTER)) + unsigned(W(HASH_02_COUNTER)));
@@ -197,7 +232,6 @@ begin
                         b <= a;
                         a <= std_logic_vector(unsigned(T1) + unsigned(T2));
                         HASH_02_COUNTER <= HASH_02_COUNTER + 1;    --increment counter
-                    end if;
                 when HASH_03 =>
                     HV(0) <= std_logic_vector(unsigned(a) + unsigned(HV(0)));
                     HV(1) <= std_logic_vector(unsigned(b) + unsigned(HV(1)));
@@ -209,13 +243,10 @@ begin
                     HV(7) <= std_logic_vector(unsigned(h) + unsigned(HV(7)));
                     if(HASH_ROUND_COUNTER = n_blocks-1) then
                         HASH_ROUND_COUNTER <= 0;
-                        NEXT_STATE <= DONE;
                     else
                         HASH_ROUND_COUNTER <= HASH_ROUND_COUNTER + 1;    --increment counter, read in next message block
-                        NEXT_STATE <= READ_MSG_BLOCK;
                     end if;
                 when DONE =>
-                    NEXT_STATE <= DONE; --stay in done state unless reset
             end case;
         end if;
     end process;
