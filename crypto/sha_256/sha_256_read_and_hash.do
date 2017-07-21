@@ -28,53 +28,63 @@ sim:/sha_256_read_and_hash/sha_256_core_INST/HASH_02_COUNTER
 add wave -position insertpoint  \
 sim:/sha_256_read_and_hash/sha_256_core_INST/msg_block_in
 add wave -position insertpoint  \
-sim:/sha_256_read_and_hash/sha_256_core_INST/data_out
-add wave -position insertpoint  \
 sim:/sha_256_read_and_hash/sha_256_core_INST/H0
 add wave -position insertpoint  \
-sim:/sha_256_read_and_hash/sha_256_core_INST/a
+sim:/sha_256_read_and_hash/sha_256_core_INST/H1
 add wave -position insertpoint  \
-sim:/sha_256_read_and_hash/sha_256_core_INST/b
+sim:/sha_256_read_and_hash/sha_256_core_INST/H2
 add wave -position insertpoint  \
-sim:/sha_256_read_and_hash/sha_256_core_INST/c
+sim:/sha_256_read_and_hash/sha_256_core_INST/H3
 add wave -position insertpoint  \
-sim:/sha_256_read_and_hash/sha_256_core_INST/d
+sim:/sha_256_read_and_hash/sha_256_core_INST/H4
 add wave -position insertpoint  \
-sim:/sha_256_read_and_hash/sha_256_core_INST/e
+sim:/sha_256_read_and_hash/sha_256_core_INST/H5
 add wave -position insertpoint  \
-sim:/sha_256_read_and_hash/sha_256_core_INST/f
+sim:/sha_256_read_and_hash/sha_256_core_INST/H6
 add wave -position insertpoint  \
-sim:/sha_256_read_and_hash/sha_256_core_INST/g
+sim:/sha_256_read_and_hash/sha_256_core_INST/H7
 add wave -position insertpoint  \
-sim:/sha_256_read_and_hash/sha_256_core_INST/h
-add wave -position insertpoint  \
-sim:/sha_256_read_and_hash/sha_256_core_INST/T1
-add wave -position insertpoint  \
-sim:/sha_256_read_and_hash/sha_256_core_INST/T2
-add wave -position insertpoint  \
-sim:/sha_256_read_and_hash/sha_256_core_INST/M00
-add wave -position insertpoint  \
-sim:/sha_256_pkg/W
-add wave -position insertpoint  \
-sim:/sha_256_read_and_hash/sha_256_core_INST/debug_word
-add wave -position insertpoint  \
-sim:/sha_256_read_and_hash/sha_256_core_INST/debug_word_01
+sim:/sha_256_read_and_hash/sha_256_core_INST/data_out
 
 force -freeze sim:/sha_256_read_and_hash/clk 1 0, 0 {50 ns} -r 100
 force -freeze sim:/sha_256_read_and_hash/rst 1
 force -freeze sim:/sha_256_read_and_hash/n_blocks 1
 run 50
-force -freeze sim:/sha_256_read_and_hash/data_in 32'hDEADFACE
-run 200
-force -freeze sim:/sha_256_read_and_hash/data_in 32'h00000ACE
+force -freeze sim:/sha_256_read_and_hash/data_in 32'h48800000
+run 300
+force -freeze sim:/sha_256_read_and_hash/data_in 32'h00000000
 run 100
-force -freeze sim:/sha_256_read_and_hash/data_in 32'h0000000A
+force -freeze sim:/sha_256_read_and_hash/data_in 32'h00000000
 run 100
-force -freeze sim:/sha_256_read_and_hash/data_in 32'h000000FF
+force -freeze sim:/sha_256_read_and_hash/data_in 32'h00000000
 run 100
-force -freeze sim:/sha_256_read_and_hash/data_in 32'h00000800
+
+force -freeze sim:/sha_256_read_and_hash/data_in 32'h00000000
 run 100
-force -freeze sim:/sha_256_read_and_hash/data_in 32'h000E0000
+force -freeze sim:/sha_256_read_and_hash/data_in 32'h00000000
 run 100
-force -freeze sim:/sha_256_read_and_hash/data_in 32'h11111111
+force -freeze sim:/sha_256_read_and_hash/data_in 32'h00000000
+run 100
+force -freeze sim:/sha_256_read_and_hash/data_in 32'h00000000
+run 100
+
+force -freeze sim:/sha_256_read_and_hash/data_in 32'h00000000
+run 100
+force -freeze sim:/sha_256_read_and_hash/data_in 32'h00000000
+run 100
+force -freeze sim:/sha_256_read_and_hash/data_in 32'h00000000
+run 100
+force -freeze sim:/sha_256_read_and_hash/data_in 32'h00000000
+run 100
+
+force -freeze sim:/sha_256_read_and_hash/data_in 32'h00000000
+run 100
+force -freeze sim:/sha_256_read_and_hash/data_in 32'h00000000
+run 100
+force -freeze sim:/sha_256_read_and_hash/data_in 32'h00000000
+run 100
+force -freeze sim:/sha_256_read_and_hash/data_in 32'h00000008
+run 100
+
+
 run 11000

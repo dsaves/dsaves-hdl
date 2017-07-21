@@ -34,6 +34,9 @@ package sha_256_pkg is
     constant WORD_SIZE : natural := 32;
     
     type K_DATA is array (0 to 63) of std_logic_vector(WORD_SIZE-1 downto 0);
+    type M_DATA is array (0 to 15) of std_logic_vector(WORD_SIZE-1 downto 0);
+    type H_DATA is array (0 to 7) of std_logic_vector(WORD_SIZE-1 downto 0);
+    
     constant K : K_DATA := (
         --address 0
         X"428a2f98", X"71374491", X"b5c0fbcf", X"e9b5dba5",
@@ -55,7 +58,7 @@ package sha_256_pkg is
     );
     
     --Message schedule, W(00), W(01), ...W(63) (64 32-bit words)
-    signal W : K_DATA:= (
+    signal W : K_DATA := (
         --address 0
         X"00000000", X"00000000", X"00000000", X"00000000",
         X"00000000", X"00000000", X"00000000", X"00000000",
@@ -74,6 +77,10 @@ package sha_256_pkg is
         X"00000000", X"00000000", X"00000000", X"00000000",
         X"00000000", X"00000000", X"00000000", X"00000000"
     );
+    
+    --Message blocks, the padded message should be a multiple of 512 bits,
+    signal M : M_DATA;
+    
     
     function ROTR (a : std_logic_vector(WORD_SIZE-1 downto 0); n : natural)
                     return std_logic_vector;
