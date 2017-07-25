@@ -52,7 +52,7 @@ architecture sha_256_read_and_hash_ARCH of sha_256_read_and_hash is
     signal HASH_ROUND_COUNTER : natural := 0;
     signal MSG_BLOCK_COUNTER : natural := 0;
 
-    --block reader signals
+    --block accumulator signals
     signal message_chunk_512 : std_logic_vector((CHUNK_SIZE*WORD_WIDTH)-1 downto 0);
     signal input_reader_en : std_logic := '0';
     signal input_reader_valid : std_logic;
@@ -65,7 +65,7 @@ architecture sha_256_read_and_hash_ARCH of sha_256_read_and_hash is
     signal CURRENT_STATE, NEXT_STATE : SHA_256_RH_STATE;
 begin
 
-    input_block_reader_INST : entity work.block_reader
+    input_block_reader_INST : entity work.block_accumulator
         port map(
             clk => clk,
             rst => rst,
@@ -97,11 +97,11 @@ begin
     end process;
     
     --next state logic
-    process(clk, rst, CURRENT_STATE)
+    process(CURRENT_STATE, rst, input_reader_valid, sha_256_core_finished)
     begin
         if(rst = RESET_VALUE) then
             NEXT_STATE <= RESET;
-        elsif(clk'event and clk = CLK_VALUE) then
+        else
             case CURRENT_STATE is
                 when RESET =>
                     NEXT_STATE <= READ_IN;

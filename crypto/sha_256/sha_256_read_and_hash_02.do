@@ -31,6 +31,9 @@ sim:/sha_256_read_and_hash/sha_256_core_INST/msg_block_in
 add wave -position insertpoint  \
 sim:/sha_256_read_and_hash/sha_256_core_INST/HV
 add wave -position insertpoint  \
+sim:/sha_256_pkg/W
+
+add wave -position insertpoint  \
 sim:/sha_256_read_and_hash/sha_256_core_INST/a
 add wave -position insertpoint  \
 sim:/sha_256_read_and_hash/sha_256_core_INST/b
@@ -55,7 +58,7 @@ force -freeze sim:/sha_256_read_and_hash/clk 1 0, 0 {50 ns} -r 100
 force -freeze sim:/sha_256_read_and_hash/rst 1
 force -freeze sim:/sha_256_read_and_hash/n_blocks 1
 run 50
-force -freeze sim:/sha_256_read_and_hash/data_in 32'h48800000
+force -freeze sim:/sha_256_read_and_hash/data_in 32'h00000018
 run 300
 force -freeze sim:/sha_256_read_and_hash/data_in 32'h00000000
 run 100
@@ -88,8 +91,8 @@ force -freeze sim:/sha_256_read_and_hash/data_in 32'h00000000
 run 100
 force -freeze sim:/sha_256_read_and_hash/data_in 32'h00000000
 run 100
-force -freeze sim:/sha_256_read_and_hash/data_in 32'h00000008
+force -freeze sim:/sha_256_read_and_hash/data_in 32'h61626380
 run 100
 
 
-run 15000
+run 22500

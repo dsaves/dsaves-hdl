@@ -88,9 +88,9 @@ architecture sha_256_core_ARCH of sha_256_core is
     signal debug_word_01 : std_logic_vector(WORD_WIDTH-1 downto 0);
     
     
-    type SHA_256_HASH_CORE_STATE is ( RESET, IDLE_STATE, READ_MSG_BLOCK, HASH_00, HASH_01, HASH_02, HASH_02b, HASH_03, DONE );
+    type SHA_256_HASH_CORE_STATE is ( RESET, IDLE_STATE, READ_MSG_BLOCK, PREP_MSG_SCHEDULE_00, PREP_MSG_SCHEDULE_01, PREP_MSG_SCHEDULE_02, PREP_MSG_SCHEDULE_03, HASH_00, HASH_01, HASH_02, HASH_02b, HASH_02c, HASH_03, DONE );
     signal CURRENT_STATE, NEXT_STATE : SHA_256_HASH_CORE_STATE;
-    signal PREVIOUS_STATE : SHA_256_HASH_CORE_STATE;
+    signal PREVIOUS_STATE : SHA_256_HASH_CORE_STATE := READ_MSG_BLOCK;
 begin
 
     --current state logic
@@ -124,18 +124,28 @@ begin
                 when IDLE_STATE =>
                     NEXT_STATE <= PREVIOUS_STATE;
                 when READ_MSG_BLOCK =>
+                    NEXT_STATE <= PREP_MSG_SCHEDULE_00;
+                when PREP_MSG_SCHEDULE_00 =>
+                    NEXT_STATE <= PREP_MSG_SCHEDULE_01;
+                when PREP_MSG_SCHEDULE_01 =>
+                    NEXT_STATE <= PREP_MSG_SCHEDULE_02;
+                when PREP_MSG_SCHEDULE_02 =>
+                    NEXT_STATE <= PREP_MSG_SCHEDULE_03;
+                when PREP_MSG_SCHEDULE_03 =>
                     NEXT_STATE <= HASH_00;
                 when HASH_00 =>
                     NEXT_STATE <= HASH_01;
                 when HASH_01 =>
                     NEXT_STATE <= HASH_02;
                 when HASH_02 =>
-                    if(HASH_02_COUNTER = HASH_02_COUNT_LIMIT-1) then
+                    if(HASH_02_COUNTER = HASH_02_COUNT_LIMIT) then
                         NEXT_STATE <= HASH_03;
                     else
                         NEXT_STATE <= HASH_02b;
                     end if;
                 when HASH_02b =>
+                        NEXT_STATE <= HASH_02c;
+                when HASH_02c =>
                         NEXT_STATE <= HASH_02;
                 when HASH_03 =>
                     if(HASH_ROUND_COUNTER = n_blocks-1) then
@@ -187,7 +197,6 @@ begin
                     HASH_ROUND_COUNTER <= 0;
                 when IDLE_STATE =>    --the IDLE_STATE stage is a stall stage, perhaps waiting for new message block to arrive.
                 when READ_MSG_BLOCK =>
-                
                     HV(0) <= X"6a09e667";
                     HV(1) <= X"bb67ae85";
                     HV(2) <= X"3c6ef372";
@@ -197,9 +206,17 @@ begin
                     HV(6) <= X"1f83d9ab";
                     HV(7) <= X"5be0cd19";
                     M <= M_INT;
-                    
-                when HASH_00 =>
-                    W <= W_INT;
+                when PREP_MSG_SCHEDULE_00 =>
+                    W(0 to 15) <= W_INT(0 to 15);
+                when PREP_MSG_SCHEDULE_01 =>
+                    W(16 to 31) <= W_INT(16 to 31);
+                when PREP_MSG_SCHEDULE_02 =>
+                    W(32 to 47) <= W_INT(32 to 47);
+                when PREP_MSG_SCHEDULE_03 =>
+                    W(48 to 63) <= W_INT(48 to 63);
+                when HASH_00 =>                    
+                    --W <= W_INT;
+                    --W(16 to 63) <= W_INT(16 to 63);
                 when HASH_01 =>
                     a <= HV(0);
                     b <= HV(1);
@@ -210,28 +227,29 @@ begin
                     g <= HV(6);
                     h <= HV(7);
                 when HASH_02 =>
-                    if(HASH_02_COUNTER = HASH_02_COUNT_LIMIT-1) then
+                    if(HASH_02_COUNTER = HASH_02_COUNT_LIMIT) then
                         HASH_02_COUNTER <= 0;
                     else
                         --you have to set T1 and T2 in a different state, due to how
                         --VHDL sequential/process statements are evaluated.
-                        --T1 <= std_logic_vector(unsigned(h) + unsigned(SIGMA_UCASE_1(e)) + unsigned(CH(e, f, g)) + unsigned(K(HASH_02_COUNTER)) + unsigned(W(HASH_02_COUNTER)));
-                        --T2 <= std_logic_vector(unsigned(SIGMA_UCASE_0(a)) + unsigned(MAJ(a, b, c)));
-                    end if;
-                when HASH_02b =>
-                        debug_word <= K(HASH_02_COUNTER);
-                        debug_word_01 <= W(HASH_02_COUNTER);
                         T1 <= std_logic_vector(unsigned(h) + unsigned(SIGMA_UCASE_1(e)) + unsigned(CH(e, f, g)) + unsigned(K(HASH_02_COUNTER)) + unsigned(W(HASH_02_COUNTER)));
                         T2 <= std_logic_vector(unsigned(SIGMA_UCASE_0(a)) + unsigned(MAJ(a, b, c)));
-                        h <= g;
-                        g <= f;
-                        f <= e;
-                        e <= std_logic_vector(unsigned(d) + unsigned(T1));
-                        d <= c;
-                        c <= b;
-                        b <= a;
-                        a <= std_logic_vector(unsigned(T1) + unsigned(T2));
-                        HASH_02_COUNTER <= HASH_02_COUNTER + 1;    --increment counter
+                    end if;
+                when HASH_02b =>
+                    debug_word <= K(HASH_02_COUNTER);
+                    debug_word_01 <= W(HASH_02_COUNTER);
+                    --T1 <= std_logic_vector(unsigned(h) + unsigned(SIGMA_UCASE_1(e)) + unsigned(CH(e, f, g)) + unsigned(K(HASH_02_COUNTER)) + unsigned(W(HASH_02_COUNTER)));
+                    --T2 <= std_logic_vector(unsigned(SIGMA_UCASE_0(a)) + unsigned(MAJ(a, b, c)));
+                    h <= g;
+                    g <= f;
+                    f <= e;
+                    e <= std_logic_vector(unsigned(d) + unsigned(T1));
+                    d <= c;
+                    c <= b;
+                    b <= a;
+                    a <= std_logic_vector(unsigned(T1) + unsigned(T2));
+                when HASH_02c =>
+                    HASH_02_COUNTER <= HASH_02_COUNTER + 1;    --increment counter
                 when HASH_03 =>
                     HV(0) <= std_logic_vector(unsigned(a) + unsigned(HV(0)));
                     HV(1) <= std_logic_vector(unsigned(b) + unsigned(HV(1)));
@@ -267,9 +285,8 @@ begin
     MESSAGE_SCHEDULE_INTERMEDIATE_01:
     for i in 16 to 63 generate
     begin
-        W_INT(i) <= std_logic_vector(unsigned(SIGMA_LCASE_1(W(i-2))) + unsigned(W(i-7)) + unsigned(SIGMA_LCASE_0(W(i-15))) + unsigned(W(i-16)));
+        W_INT(i) <= std_logic_vector(unsigned(SIGMA_LCASE_1(W_INT(i-2))) + unsigned(W_INT(i-7)) + unsigned(SIGMA_LCASE_0(W_INT(i-15))) + unsigned(W_INT(i-16)));
     end generate;
-    
     
     --FINISHED signal asserts when hashing is done
     finished <= '1' when CURRENT_STATE = DONE else

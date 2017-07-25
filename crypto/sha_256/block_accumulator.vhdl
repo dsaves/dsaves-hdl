@@ -29,7 +29,7 @@ library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
 
-entity block_reader is
+entity block_accumulator is
 	generic(
         CLK_VALUE : std_logic := '1';    --clock enable value
         RESET_VALUE : std_logic := '0';    --reset enable value
@@ -47,7 +47,7 @@ entity block_reader is
 	);
 end entity;
 
-architecture block_reader_ARCH of block_reader is
+architecture block_accumulator_ARCH of block_accumulator is
     signal BLOCK_COUNTER : natural := 0;
     signal data : std_logic_vector((BLOCK_SIZE*NUM_BLOCKS)-1 downto 0);
 
@@ -69,16 +69,12 @@ begin
         end if;
     end process;
     
-    
     --next state logic
-    process(clk, rst, en)
+    process(CURRENT_STATE, BLOCK_COUNTER, rst)
     begin
-        data <= data;
         if(rst'event and rst = RESET_VALUE) then
             NEXT_STATE <= RESET;
-            BLOCK_COUNTER <= 0;
-            data <= (others => '0');
-        elsif(clk'event and clk = CLK_VALUE) then
+        else
             case CURRENT_STATE is
                 when RESET =>
                     NEXT_STATE <= READ_IN;
@@ -86,14 +82,33 @@ begin
                     if(BLOCK_COUNTER >= NUM_BLOCKS) then
                         NEXT_STATE <= DONE;
                     else
-                        --capture logic
-                        BLOCK_COUNTER <= BLOCK_COUNTER + 1;
-                        data(BLOCK_SIZE-1 downto 0) <= data_in;
-                        data((BLOCK_SIZE*NUM_BLOCKS)-1 downto BLOCK_SIZE) <= data(BLOCK_SIZE*(NUM_BLOCKS-1)-1 downto 0);
                         NEXT_STATE <= READ_IN;
                     end if;
                 when DONE =>
                     NEXT_STATE <= DONE;
+            end case;
+        end if;
+    end process;
+    
+    --functional logic
+    process(clk, rst, en)
+    begin
+        data <= data;
+        if(rst'event and rst = RESET_VALUE) then
+            BLOCK_COUNTER <= 0;
+            data <= (others => '0');
+        elsif(clk'event and clk = CLK_VALUE) then
+            case CURRENT_STATE is
+                when RESET =>
+                when READ_IN =>
+                    if(BLOCK_COUNTER >= NUM_BLOCKS) then
+                    else
+                        --capture logic
+                        BLOCK_COUNTER <= BLOCK_COUNTER + 1;
+                        data(BLOCK_SIZE-1 downto 0) <= data_in;
+                        data((BLOCK_SIZE*NUM_BLOCKS)-1 downto BLOCK_SIZE) <= data(BLOCK_SIZE*(NUM_BLOCKS-1)-1 downto 0);
+                    end if;
+                when DONE =>
             end case;
         end if;
     end process;
