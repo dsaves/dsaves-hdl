@@ -81,7 +81,7 @@ package sha_256_pkg is
     --Message blocks, the padded message should be a multiple of 512 bits,
     signal M : M_DATA;
     
-    
+    --function definitions
     function ROTR (a : std_logic_vector(WORD_SIZE-1 downto 0); n : natural)
                     return std_logic_vector;
     function ROTL (a : std_logic_vector(WORD_SIZE-1 downto 0); n : natural)
@@ -105,6 +105,7 @@ package sha_256_pkg is
                     return std_logic_vector;
     function SIGMA_LCASE_1 (x : std_logic_vector(WORD_SIZE-1 downto 0))
                     return std_logic_vector;
+                    
 end package;
 
 package body sha_256_pkg is
