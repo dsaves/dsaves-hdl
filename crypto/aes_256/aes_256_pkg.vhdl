@@ -31,11 +31,25 @@ use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
 
 package aes_256_pkg is
+
     constant BYTE_SIZE : natural := 8;
+    constant NB : natural := 4;
+    
+    --type BYTE_T is std_logic_vector(BYTE_SIZE-1 downto 0);
+    --type ROW is array(natural range <>) of BYTE_T
+    --type t_row_vector is array(natural range <>) of t_byte
+    
+    --subtype t_byte is std_logic_vector(BYTE_SIZE-1 downto 0);
+    --type t_row_vector is array(natural range <>) of t_byte;
+    --subtype t_dim2 is t_row_vector(0 to c1_r2);
+    --type t_dim3_vector is array(natural range <>) of t_dim2;
+    --subtype t_dim3 is t_dim3_vector(0 to r1);
     
     --function definitions
     function SUB_BYTES (xy : std_logic_vector(BYTE_SIZE-1 downto 0))
                     return std_logic_vector;
+                    
+    --function SHIFT_ROW (r : ROW; n : natural ) return ROW;
                     
 end package;
 
@@ -193,6 +207,12 @@ package body aes_256_pkg is
             when others => return X"00";
         end case;
     end function;
+    
+    --function SHIFT_ROW (r : ROW; n : natural ) return ROW is
+    --    variable temp_byte : std_logic_vector(BYTE_SIZE-1 downto 0);
+    --begin
+    --    return shift_left(unsigned(r), n*BYTE_SIZE);
+    --end function;
     
 end package body;
 

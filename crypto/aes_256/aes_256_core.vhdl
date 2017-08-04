@@ -33,6 +33,8 @@ use work.aes_256_pkg.all;
 
 entity aes_256_core is
     generic(
+        RST_ASSERT : std_logic := '1';  --reset assertion value
+        CLK_ASSERT : std_logic := '1';  --clock assertion value
         BLOCK_SIZE : natural := 128     --AES block size is 128 bits
     );
     port(
@@ -45,9 +47,31 @@ end entity;
 
 architecture aes_256_core_ARCH of aes_256_core is
     constant KEY_SIZE : natural := 256; -- AES-256 has a 256-bit key size
+    type AES_STATE is (RESET, IDLE, SUB_BYTES, SHIFT_ROWS, MIX_COLUMNS, ADD_ROUND_KEY, FINISHED);
+    signal CURRENT_STATE, NEXT_STATE : AES_STATE;
 begin
+
+    --CURRENT_STATE ASSIGNMENT
+    process(clk, rst)
+    begin
+        if(rst=RST_ASSERT) then
+            CURRENT_STATE <= RESET;
+        elsif(clk'event and clk=CLK_ASSERT) then
+            CURRENT_STATE <= NEXT_STATE;
+        end if;
+    end process;
 
     --TODO: fix dummy output
     data_out <= (others => '0');
     
 end architecture;
+
+
+
+
+
+
+
+
+
+
